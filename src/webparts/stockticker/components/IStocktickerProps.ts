@@ -4,4 +4,6 @@ export interface IStocktickerProps {
   environmentMessage: string;
   hasTeamsContext: boolean;
   userDisplayName: string;
+  siteUrl:string;
+  context:any
 }

@@ -1,41 +1,100 @@
 import * as React from 'react';
 import styles from './Stockticker.module.scss';
 import type { IStocktickerProps } from './IStocktickerProps';
-import { escape } from '@microsoft/sp-lodash-subset';
+//import { escape } from '@microsoft/sp-lodash-subset';
 
-export default class Stockticker extends React.Component<IStocktickerProps> {
+interface StockData {
+  'Meta Data': {
+    '1. Information': string;
+    '2. Symbol': string;
+    '3. Last Refreshed': string;
+    '4. Interval': string;
+    '5. Output Size': string;
+    '6. Time Zone': string;
+  };
+  'Time Series (5min)': {
+    [key: string]: {
+      '1. open': string;
+      '2. high': string;
+      '3. low': string;
+      '4. close': string;
+      '5. volume': string;
+    };
+  };
+}
+
+export interface StocktickerState {
+  data: any;
+  stockjson: StockData | null;
+}
+
+export default class Stockticker extends React.Component<IStocktickerProps, StocktickerState> {
+  constructor(props: IStocktickerProps) {
+    super(props);
+
+    // Properly initialize state
+    this.state = {
+      data: [],
+      stockjson: null,
+    };
+  }
+
+  componentDidMount(): void {
+    this.fetchStockPrice();
+  }
+
+  private fetchStockPrice = async () => {
+    const url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=demo";
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Response status: ${response.status}`);
+      }
+      const json = await response.json();
+      this.setState({ stockjson: json });
+      console.log(json);
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
   public render(): React.ReactElement<IStocktickerProps> {
-    const {
-      description,
-      isDarkTheme,
-      environmentMessage,
-      hasTeamsContext,
-      userDisplayName
-    } = this.props;
+    const { hasTeamsContext, //userDisplayName 
+  } = this.props;
+    const { stockjson } = this.state;
+
+    let firstOpen: string | null = null;
+    let lastClose: string | null = null;
+
+    if (stockjson && stockjson['Time Series (5min)']) {
+      const timeSeries = stockjson['Time Series (5min)'];
+      const timestamps = Object.keys(timeSeries).sort(); // Sort timestamps in ascending order
+
+      if (timestamps.length > 0) {
+        const firstTimestamp = timestamps[0]; // First entry
+        const lastTimestamp = timestamps[timestamps.length - 1]; // Last entry
+
+        firstOpen = timeSeries[firstTimestamp]['1. open'];
+        lastClose = timeSeries[lastTimestamp]['4. close'];
+      }
+    }
 
     return (
       <section className={`${styles.stockticker} ${hasTeamsContext ? styles.teams : ''}`}>
         <div className={styles.welcome}>
-          <img alt="" src={isDarkTheme ? require('../assets/welcome-dark.png') : require('../assets/welcome-light.png')} className={styles.welcomeImage} />
-          <h2>Well done, {escape(userDisplayName)}!</h2>
-          <div>{environmentMessage}</div>
-          <div>Web part property value: <strong>{escape(description)}</strong></div>
-        </div>
-        <div>
-          <h3>Welcome to SharePoint Framework!</h3>
-          <p>
-            The SharePoint Framework (SPFx) is a extensibility model for Microsoft Viva, Microsoft Teams and SharePoint. It&#39;s the easiest way to extend Microsoft 365 with automatic Single Sign On, automatic hosting and industry standard tooling.
-          </p>
-          <h4>Learn more about SPFx development:</h4>
-          <ul className={styles.links}>
-            <li><a href="https://aka.ms/spfx" target="_blank" rel="noreferrer">SharePoint Framework Overview</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-graph" target="_blank" rel="noreferrer">Use Microsoft Graph in your solution</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-teams" target="_blank" rel="noreferrer">Build for Microsoft Teams using SharePoint Framework</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-viva" target="_blank" rel="noreferrer">Build for Microsoft Viva Connections using SharePoint Framework</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-store" target="_blank" rel="noreferrer">Publish SharePoint Framework applications to the marketplace</a></li>
-            <li><a href="https://aka.ms/spfx-yeoman-api" target="_blank" rel="noreferrer">SharePoint Framework API reference</a></li>
-            <li><a href="https://aka.ms/m365pnp" target="_blank" rel="noreferrer">Microsoft 365 Developer Community</a></li>
-          </ul>
+          <h2 className={styles.stocktickerHeadr}>
+            {stockjson?.['Meta Data']?.['2. Symbol'] || 'Loading...'}
+          </h2>
+          <div className={styles.flexContainer}>
+            <span className={styles.price}><b>Open :</b> $ {firstOpen || 'N/A'}</span>
+            <span className={styles.price}><b>Close :</b> $ {lastClose || 'N/A'}</span>
+          </div>
+          <div className={styles.flexContainer}> 
+            <span className={styles.price}><b>Time Zone : </b>{stockjson?.['Meta Data']?.['6. Time Zone']  || 'N/A'}</span>
+          </div>
+          <div className={styles.flexContainer}>
+            <span className={styles.price}><b>Last Refreshed At : </b>{stockjson?.['Meta Data']?.['3. Last Refreshed']  || 'N/A'}</span>
+          </div> 
         </div>
       </section>
     );
