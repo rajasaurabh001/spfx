@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "stockticker-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/stockticker/StocktickerWebPart.js",
+          "manifest": "./src/webparts/stockticker/StocktickerWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "StocktickerWebPartStrings": "lib/webparts/stockticker/loc/{locale}.js"
+  }
+}
